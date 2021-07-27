@@ -1,5 +1,5 @@
 {
-    "name":         "jms/job-queue-bundle",
+    "name":         "yrodchyn/job-queue-bundle",
     "description":  "Allows to run and schedule Symfony console commands as background jobs.",
     "keywords":     ["job","queue", "background", "cron", "scheduled"],
     "homepage":     "http://jmsyst.com/bundles/JMSJobQueueBundle",
@@ -11,8 +11,9 @@
             "email":  "schmittjoh@gmail.com"
         }
     ],
+
     "require": {
-        "php": "^7.1",
+        "php": "^7.1|^8.0",
         "symfony/framework-bundle": "^3.4 || ^4.0",
         "symfony/debug": "^3.4 || ^4.0",
         "doctrine/common": "^2.3",
@@ -31,7 +32,7 @@
         "symfony/twig-bundle": "*",
         "symfony/form": "*",
         "symfony/validator": "*",
-        "phpunit/phpunit": "^6.0",
+        "phpunit/phpunit": "^6.0|^9.4",
         "symfony/intl": "*"
     },
     "suggest": {
