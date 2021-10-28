@@ -25,10 +25,9 @@
             <tag name="twig.extension" />
         </service>
 
-        <service id="jms_job_queue.job_manager" class="%jms_job_queue.job_manager.class%" public="true">
-            <argument type="service" id="doctrine" />
-            <argument type="service" id="event_dispatcher" />
-            <argument type="service" id="jms_job_queue.retry_scheduler" />
+        <service id="jms_job_queue.job_manager" class="%jms_job_queue.job_manager.class%" public="true" autowire="true" autoconfigure="true">
+            <argument key="$eventDispatcher" type="service" id="event_dispatcher" />
+            <argument key="$retryScheduler" type="service" id="jms_job_queue.retry_scheduler" />
         </service>
     </services>
 </container>
