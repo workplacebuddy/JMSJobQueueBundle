@@ -4,12 +4,12 @@ namespace JMS\JobQueueBundle\Entity\Listener;
 
 use ArrayIterator;
 use Closure;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\Criteria;
 use Doctrine\Common\Collections\Expr\ClosureExpressionVisitor;
 use Doctrine\Common\Collections\Selectable;
-use Doctrine\Common\Persistence\ManagerRegistry;
 use JMS\JobQueueBundle\Entity\Job;
 
 /**
@@ -21,13 +21,13 @@ use JMS\JobQueueBundle\Entity\Job;
  */
 class PersistentRelatedEntitiesCollection implements Collection, Selectable
 {
-    private $registry;
+    private $em;
     private $job;
     private $entities;
 
-    public function __construct(ManagerRegistry $registry, Job $job)
+    public function __construct(EntityManagerInterface $em, Job $job)
     {
-        $this->registry = $registry;
+        $this->em = $em;
         $this->job = $job;
     }
 
@@ -513,7 +513,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
             return;
         }
 
-        $con = $this->registry->getManagerForClass('JMSJobQueueBundle:Job')->getConnection();
+        $con = $this->em->getConnection();
         $entitiesPerClass = array();
         $count = 0;
         foreach ($con->query("SELECT related_class, related_id FROM jms_job_related_entities WHERE job_id = ".$this->job->getId()) as $data) {
@@ -529,8 +529,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
 
         $entities = array();
         foreach ($entitiesPerClass as $className => $ids) {
-            $em = $this->registry->getManagerForClass($className);
-            $qb = $em->createQueryBuilder()
+            $qb = $this->em->createQueryBuilder()
                         ->select('e')->from($className, 'e');
 
             $i = 0;

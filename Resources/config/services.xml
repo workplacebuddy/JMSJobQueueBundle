@@ -14,8 +14,7 @@
     <services>
         <service id="jms_job_queue.retry_scheduler" class="%jms_job_queue.retry_scheduler.class%" />
 
-        <service id="jms_job_queue.entity.many_to_any_listener" class="%jms_job_queue.entity.many_to_any_listener.class%">
-            <argument type="service" id="doctrine" />
+        <service id="jms_job_queue.entity.many_to_any_listener" class="%jms_job_queue.entity.many_to_any_listener.class%" autowire="true" autoconfigure="true">
             <tag name="doctrine.event_listener" lazy="true" event="postGenerateSchema" />
             <tag name="doctrine.event_listener" lazy="true" event="postLoad" />
             <tag name="doctrine.event_listener" lazy="true" event="postPersist" />
