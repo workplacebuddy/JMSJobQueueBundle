@@ -2,14 +2,12 @@
 
 namespace JMS\JobQueueBundle\Command;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use JMS\JobQueueBundle\Console\CronCommand;
 use JMS\JobQueueBundle\Cron\CommandScheduler;
 use JMS\JobQueueBundle\Cron\JobScheduler;
 use JMS\JobQueueBundle\Entity\CronJob;
-use JMS\JobQueueBundle\Entity\Job;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -19,15 +17,15 @@ class ScheduleCommand extends Command
 {
     protected static $defaultName = 'jms-job-queue:schedule';
 
-    private $registry;
+    private $em;
     private $schedulers;
     private $cronCommands;
 
-    public function __construct(ManagerRegistry $managerRegistry, iterable $schedulers, iterable $cronCommands)
+    public function __construct(EntityManagerInterface $em, iterable $schedulers, iterable $cronCommands)
     {
         parent::__construct();
 
-        $this->registry = $managerRegistry;
+        $this->em = $em;
         $this->schedulers = $schedulers;
         $this->cronCommands = $cronCommands;
     }
@@ -63,7 +61,7 @@ class ScheduleCommand extends Command
             return 0;
         }
 
-        $jobsLastRunAt = $this->populateJobsLastRunAt($this->registry->getManagerForClass(CronJob::class), $jobSchedulers);
+        $jobsLastRunAt = $this->populateJobsLastRunAt($jobSchedulers);
 
         $startedAt = time();
         while (true) {
@@ -104,21 +102,16 @@ class ScheduleCommand extends Command
             if ($success) {
                 $output->writeln('Scheduling command '.$name);
                 $job = $scheduler->createJob($name, $lastRunAt);
-                $em = $this->registry->getManagerForClass(Job::class);
-                $em->persist($job);
-                $em->flush();
+                $this->em->persist($job);
+                $this->em->flush();
             }
         }
     }
 
     private function acquireLock($commandName, \DateTime $lastRunAt)
     {
-        /** @var EntityManager $em */
-        $em = $this->registry->getManagerForClass(CronJob::class);
-        $con = $em->getConnection();
-
         $now = new \DateTime();
-        $affectedRows = $con->executeUpdate(
+        $affectedRows = $this->em->getConnection()->executeUpdate(
             "UPDATE jms_cron_jobs SET lastRunAt = :now WHERE command = :command AND lastRunAt = :lastRunAt",
             array(
                 'now' => $now,
@@ -136,7 +129,7 @@ class ScheduleCommand extends Command
         }
 
         /** @var CronJob $cronJob */
-        $cronJob = $em->createQuery("SELECT j FROM ".CronJob::class." j WHERE j.command = :command")
+        $cronJob = $this->em->createQuery("SELECT j FROM ".CronJob::class." j WHERE j.command = :command")
             ->setParameter('command', $commandName)
             ->setHint(Query::HINT_REFRESH, true)
             ->getSingleResult();
@@ -166,11 +159,11 @@ class ScheduleCommand extends Command
         return $schedulers;
     }
 
-    private function populateJobsLastRunAt(EntityManager $em, array $jobSchedulers)
+    private function populateJobsLastRunAt(array $jobSchedulers)
     {
         $jobsLastRunAt = array();
 
-        foreach ($em->getRepository(CronJob::class)->findAll() as $job) {
+        foreach ($this->em->getRepository(CronJob::class)->findAll() as $job) {
             /** @var CronJob $job */
             $jobsLastRunAt[$job->getCommand()] = $job->getLastRunAt();
         }
@@ -178,11 +171,11 @@ class ScheduleCommand extends Command
         foreach (array_keys($jobSchedulers) as $name) {
             if ( ! isset($jobsLastRunAt[$name])) {
                 $job = new CronJob($name);
-                $em->persist($job);
+                $this->em->persist($job);
                 $jobsLastRunAt[$name] = $job->getLastRunAt();
             }
         }
-        $em->flush();
+        $this->em->flush();
 
         return $jobsLastRunAt;
     }

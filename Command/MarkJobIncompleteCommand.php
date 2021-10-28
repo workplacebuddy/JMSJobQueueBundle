@@ -2,8 +2,7 @@
 
 namespace JMS\JobQueueBundle\Command;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use JMS\JobQueueBundle\Entity\Job;
 use Symfony\Component\Console\Command\Command;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
@@ -15,14 +14,14 @@ class MarkJobIncompleteCommand extends Command
 {
     protected static $defaultName = 'jms-job-queue:mark-incomplete';
 
-    private $registry;
+    private $em;
     private $jobManager;
 
-    public function __construct(ManagerRegistry $managerRegistry, JobManager $jobManager)
+    public function __construct(EntityManagerInterface $em, JobManager $jobManager)
     {
         parent::__construct();
 
-        $this->registry = $managerRegistry;
+        $this->em = $em;
         $this->jobManager = $jobManager;
     }
 
@@ -36,11 +35,8 @@ class MarkJobIncompleteCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        /** @var EntityManager $em */
-        $em = $this->registry->getManagerForClass(Job::class);
-
         /** @var Job|null $job */
-        $job = $em->createQuery("SELECT j FROM ".Job::class." j WHERE j.id = :id")
+        $job = $this->em->createQuery("SELECT j FROM ".Job::class." j WHERE j.id = :id")
             ->setParameter('id', $input->getArgument('job-id'))
             ->getOneOrNullResult();
 

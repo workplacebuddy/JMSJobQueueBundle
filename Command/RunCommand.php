@@ -18,13 +18,12 @@
 
 namespace JMS\JobQueueBundle\Command;
 
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
 use JMS\JobQueueBundle\Event\NewOutputEvent;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
 use JMS\JobQueueBundle\Exception\InvalidArgumentException;
-use Symfony\Bridge\Doctrine\ManagerRegistry;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -46,8 +45,8 @@ class RunCommand extends Command
     /** @var OutputInterface */
     private $output;
 
-    /** @var ManagerRegistry */
-    private $registry;
+    /** @var EntityManagerInterface */
+    private $em;
 
     /** @var JobManager */
     private $jobManager;
@@ -67,11 +66,11 @@ class RunCommand extends Command
     /** @var array */
     private $queueOptions;
 
-    public function __construct(ManagerRegistry $managerRegistry, JobManager $jobManager, EventDispatcherInterface $dispatcher, array $queueOptionsDefault, array $queueOptions)
+    public function __construct(EntityManagerInterface $em, JobManager $jobManager, EventDispatcherInterface $dispatcher, array $queueOptionsDefault, array $queueOptions)
     {
         parent::__construct();
 
-        $this->registry = $managerRegistry;
+        $this->em = $em;
         $this->jobManager = $jobManager;
         $this->dispatcher = $dispatcher;
         $this->queueOptionsDefault = $queueOptionsDefault;
@@ -131,7 +130,7 @@ class RunCommand extends Command
         $this->env = $input->getOption('env');
         $this->verbose = $input->getOption('verbose');
         $this->output = $output;
-        $this->getEntityManager()->getConnection()->getConfiguration()->setSQLLogger(null);
+        $this->em->getConnection()->getConfiguration()->setSQLLogger(null);
 
         if ($this->verbose) {
             $this->output->writeln('Cleaning up stale jobs');
@@ -323,9 +322,8 @@ class RunCommand extends Command
                 $data['job']->addOutput($newOutput);
                 $data['job']->addErrorOutput($newErrorOutput);
                 $data['job']->checked();
-                $em = $this->getEntityManager();
-                $em->persist($data['job']);
-                $em->flush();
+                $this->em->persist($data['job']);
+                $this->em->flush();
 
                 continue;
             }
@@ -334,7 +332,7 @@ class RunCommand extends Command
 
             // If the Job exited with an exception, let's reload it so that we
             // get access to the stack trace. This might be useful for listeners.
-            $this->getEntityManager()->refresh($data['job']);
+            $this->em->refresh($data['job']);
 
             $data['job']->setExitCode($data['process']->getExitCode());
             $data['job']->setOutput($data['process']->getOutput());
@@ -366,9 +364,8 @@ class RunCommand extends Command
         }
 
         $job->setState(Job::STATE_RUNNING);
-        $em = $this->getEntityManager();
-        $em->persist($job);
-        $em->flush();
+        $this->em->persist($job);
+        $this->em->flush();
 
         $args = $this->getBasicCommandLineArgs();
         $args[] = $job->getCommand();
@@ -403,7 +400,7 @@ class RunCommand extends Command
     private function cleanUpStaleJobs($workerName)
     {
         /** @var Job[] $staleJobs */
-        $staleJobs = $this->getEntityManager()->createQuery("SELECT j FROM ".Job::class." j WHERE j.state = :running AND (j.workerName = :worker OR j.workerName IS NULL)")
+        $staleJobs = $this->em->createQuery("SELECT j FROM ".Job::class." j WHERE j.state = :running AND (j.workerName = :worker OR j.workerName IS NULL)")
             ->setParameter('worker', $workerName)
             ->setParameter('running', Job::STATE_RUNNING)
             ->getResult();
@@ -443,10 +440,5 @@ class RunCommand extends Command
         }
 
         return $args;
-    }
-
-    private function getEntityManager(): EntityManager
-    {
-        return /** @var EntityManager */ $this->registry->getManagerForClass('JMSJobQueueBundle:Job');
     }
 }
