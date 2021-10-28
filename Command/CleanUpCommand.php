@@ -27,7 +27,7 @@ class CleanUpCommand extends Command
         $this->registry = $registry;
     }
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setDescription('Cleans up jobs which exceed the maximum retention time.')
@@ -37,7 +37,7 @@ class CleanUpCommand extends Command
         ;
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         /** @var EntityManager $em */
         $em = $this->registry->getManagerForClass(Job::class);
@@ -45,6 +45,8 @@ class CleanUpCommand extends Command
 
         $this->cleanUpExpiredJobs($em, $con, $input);
         $this->collectStaleJobs($em);
+
+        return 0;
     }
 
     private function collectStaleJobs(EntityManager $em)
