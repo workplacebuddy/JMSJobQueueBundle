@@ -11,11 +11,6 @@
             "email":  "schmittjoh@gmail.com"
         }
     ],
-
-    "conflict": {
-        "jms/job-queue-bundle": "*"
-    },
-
     "require": {
         "php": "^7.1|^8.0",
         "symfony/framework-bundle": "^3.4 || ^4.0",
