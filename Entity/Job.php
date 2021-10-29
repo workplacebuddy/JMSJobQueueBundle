@@ -29,7 +29,9 @@ use Symfony\Component\Debug\Exception\FlattenException;
  * @ORM\Table(name = "jms_jobs", indexes = {
  *     @ORM\Index("cmd_search_index", columns = {"command"}),
  *     @ORM\Index("sorting_index", columns = {"state", "priority", "id"}),
- * })
+ *  },
+ *  options={"collate"="utf8mb4_unicode_ci", "charset"="utf8mb4"},
+ * )
  * @ORM\ChangeTrackingPolicy("DEFERRED_EXPLICIT")
  *
  * @author Johannes M. Schmitt <schmittjoh@gmail.com>
@@ -119,10 +121,10 @@ class Job
     /** @ORM\Column(type = "datetime", name="closedAt", nullable = true) */
     private $closedAt;
 
-    /** @ORM\Column(type = "string") */
+    /** @ORM\Column(type = "string", length = 191) */
     private $command;
 
-    /** @ORM\Column(type = "json_array") */
+    /** @ORM\Column(type = "json") */
     private $args;
 
     /**
