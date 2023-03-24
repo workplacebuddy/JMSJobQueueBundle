@@ -553,4 +553,23 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
 
         $this->entities = $entities;
     }
+
+    public function findFirst(Closure $p)
+    {
+        $this->initialize();
+
+        foreach ($this->entities as $key => $element) {
+            if ($p($key, $element)) {
+                return $element;
+            }
+        }
+        return false;
+    }
+
+    public function reduce(Closure $func, mixed $initial = null): mixed
+    {
+        $this->initialize();
+
+        return array_reduce($this->entities, $func, $initial);
+    }
 }
